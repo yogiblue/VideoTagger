@@ -2,6 +2,8 @@ import Tkinter
 import os
 import numpy
 import datetime
+import numpy as np
+import cv2
 
 from Tkinter import Tk
 from tkFileDialog import askopenfilename
@@ -9,6 +11,16 @@ from tkFileDialog import askopenfilename
 import ConfigParser
 
 Config = ConfigParser.ConfigParser()
+
+# consider using a configuration file config.py and import variables from there and use config.speed instead
+# of this global variable nonsense that is a bit of a fudge
+#speed = 30 # very fast
+speed = 50 # quite fast
+#speed = 100 # medium
+framesPerSecond = 1
+#todo: a list of switches
+# a list of behaviours and keys
+# probably need some objects
 
 def ConfigSectionMap(section):
     dict1 = {}
@@ -39,16 +51,22 @@ def ReadIniFile():
         if section == "General":
             # find the variables we need
             print ConfigSectionMap("General")
-            FramesPerSecond = Config.get("General", "FramesPerSecond")
-            print "Video Frame Rate set at  " + str(FramesPerSecond) + " frames/second"
-            Speed = Config.get("General", "Speed")
-            print "Play back speed set at  " + str(Speed) + " (which means nothing)"
+            framesPerSecond = Config.get("General", "FramesPerSecond")
+            print "Video Frame Rate set at  " + str(framesPerSecond) + " frames/second"
+            speed = Config.get("General", "Speed")
+            print "Play back speed set at  " + str(speed) + " (which means nothing)"
 
         print section
 
 def main():
 
     ReadIniFile()
+
+    (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
+
+    print "Using OpenCV version " + cv2.__version__
+
+    #choose which video file to analyse
 
     Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
     filename = askopenfilename() # show an "Open" dialog box and return the path to the selected file
@@ -60,6 +78,9 @@ def main():
     os.chdir(os.path.dirname(filename))
 
     simpleFile = os.path.basename(filename)
+
+    #To do : make this a bit more general
+
     # find the 201* part of the 2014 and then move along 2 to get to the year part (e.g. 14)
     startpos = simpleFile.find('201') + 2
     # the time part we are interested in is 17 characters long
@@ -70,9 +91,6 @@ def main():
 
     print datetimeString
     print timeString
-
-
-
 
     fmt = '%y-%m-%d_%H-%M-%S'
 
@@ -90,16 +108,31 @@ def main():
     print str(minutes)
     print str(seconds)
 
-    import numpy as np
-    import cv2
-
     cap = cv2.VideoCapture(filename)
 
     count = 0
 
     print cap
 
+    fps = 0
+    if int(major_ver)  < 3 :
+        fps = cap.get(cv2.cv.CV_CAP_PROP_FPS)
+        print "Frames per second using video.get(cv2.cv.CV_CAP_PROP_FPS): {0}".format(fps)
+    else :
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        print "Frames per second using video.get(cv2.CAP_PROP_FPS) : {0}".format(fps)
+
+    global framesPerSecond
+
+    if framesPerSecond<>fps:
+        print "Warning!!!! ini file frames per second (fps) does not match fps in video"
+        print "ini file fps: " + str(framesPerSecond) + " Video fps: " + str(fps)
+        print "Use video setting of fps"
+        framesPerSecond = int(fps)
+
     timeVideo = 0
+
+    # to do: check whether it exists and then initialise it
 
     fd = open('events_care.csv','a')
 
@@ -119,14 +152,13 @@ def main():
     maleWanderActive = False
     femaleWanderActive = False
 
-    #speed = 30 # very fast
-    speed = 50 # quite fast
-    #speed = 100 # medium
-
-
     while(cap.isOpened()):
 
         ret, frame = cap.read()
+
+        if ret == False:
+            print "End of video"
+            break;
 
         try:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -213,6 +245,7 @@ def main():
             fd.write(', nip\n')
             nipCount = nipCount + 1
 
+        # to do: make this reflect the frames per second stuff
         seconds = seconds + 1
         secondCount = secondCount + 1
 
