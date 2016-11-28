@@ -4,6 +4,7 @@ import numpy
 import datetime
 import numpy as np
 import cv2
+import globals
 
 from Tkinter import Tk
 from tkFileDialog import askopenfilename
@@ -15,9 +16,9 @@ Config = ConfigParser.ConfigParser()
 # consider using a configuration file config.py and import variables from there and use config.speed instead
 # of this global variable nonsense that is a bit of a fudge
 #speed = 30 # very fast
-speed = 50 # quite fast
+globals.speed = 50 # quite fast
 #speed = 100 # medium
-framesPerSecond = 1
+globals.framesPerSecond = 1
 #todo: a list of switches
 # a list of behaviours and keys
 # probably need some objects
@@ -51,10 +52,10 @@ def ReadIniFile():
         if section == "General":
             # find the variables we need
             print ConfigSectionMap("General")
-            framesPerSecond = Config.get("General", "FramesPerSecond")
-            print "Video Frame Rate set at  " + str(framesPerSecond) + " frames/second"
-            speed = Config.get("General", "Speed")
-            print "Play back speed set at  " + str(speed) + " (which means nothing)"
+            globals.framesPerSecond = int(Config.get("General", "FramesPerSecond"))
+            print "Video Frame Rate set at  " + str(globals.framesPerSecond) + " frames/second"
+            globals.speed = int(Config.get("General", "Speed"))
+            print "Play back speed set at  " + str(globals.speed) + " (which means nothing)"
 
         print section
 
@@ -122,13 +123,11 @@ def main():
         fps = cap.get(cv2.CAP_PROP_FPS)
         print "Frames per second using video.get(cv2.CAP_PROP_FPS) : {0}".format(fps)
 
-    global framesPerSecond
-
-    if framesPerSecond<>fps:
+    if globals.framesPerSecond<>fps:
         print "Warning!!!! ini file frames per second (fps) does not match fps in video"
-        print "ini file fps: " + str(framesPerSecond) + " Video fps: " + str(fps)
+        print "ini file fps: " + str(globals.framesPerSecond) + " Video fps: " + str(fps)
         print "Use video setting of fps"
-        framesPerSecond = int(fps)
+        globals.framesPerSecond = int(fps)
 
     timeVideo = 0
 
@@ -169,7 +168,8 @@ def main():
 
 
         cv2.imshow('frame',gray)
-        k = cv2.waitKey(speed)
+
+        k = cv2.waitKey(globals.speed)
 
         #timeVideo = timeVideo + 0.1
 
