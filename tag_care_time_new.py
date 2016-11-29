@@ -37,13 +37,13 @@ def ConfigSectionMap(section):
     return dict1
 
 def ReadIniFile():
-    print "Looking for settings.ini"
+    print "Looking for tagger_settings.ini"
     print Config
-    Config.read("settings.ini")
+    Config.read("tagger_settings.ini")
     numSettings = len(Config.sections())
 
     if numSettings == 0:
-        print "Oops, no settings in settings.ini. Check your path, etc."
+        print "Oops, no settings in tagger_settings.ini. Check your path, etc."
         exit()
 
     print "OK, found " + str(numSettings) + " sections"
@@ -52,16 +52,33 @@ def ReadIniFile():
         if section == "General":
             # find the variables we need
             print ConfigSectionMap("General")
-            globals.framesPerSecond = int(Config.get("General", "FramesPerSecond"))
+            globals.framesPerSecond = Config.getint("General", "FramesPerSecond")
             print "Video Frame Rate set at  " + str(globals.framesPerSecond) + " frames/second"
-            globals.speed = int(Config.get("General", "Speed"))
+            globals.speed = Config.getint("General", "Speed")
             print "Play back speed set at  " + str(globals.speed) + " (which means nothing)"
 
+        if "Behaviour" in section:
+            print "Found a behaviour section"
+            # now create a behaviour objects
+            # get the type, label, and key
+            if Config.get(section, "Type") == "Count":
+                myBehaviour = globals.Behaviour(Config.get(section, "Type"), Config.get(section, "Label"), Config.get(section, "Key").strip("'"))
+                globals.behaviourList.append(myBehaviour)
+
+            if Config.get(section, "Type") == "Switch":
+                myBehaviour = globals.Switch(Config.get(section, "Type"), Config.get(section, "Label"), Config.get(section, "Key").strip("'"))
+                myBehaviour.switchSettings(Config.get(section, "SwitchLabel"), Config.get(section, "SwitchSetting"))
+                globals.behaviourList.append(myBehaviour)
+
         print section
+
+
 
 def main():
 
     ReadIniFile()
+
+    print "Found " + str(len(globals.behaviourList)) + " behaviours"
 
     (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
 
@@ -172,6 +189,18 @@ def main():
         k = cv2.waitKey(globals.speed)
 
         #timeVideo = timeVideo + 0.1
+
+        for item in globals.behaviourList:
+            if k & 0xFF == ord(item.key):
+                print item.label
+                if item.type == "Switch":
+                    print "Activated switch "
+                    print item.switchLabel
+                    if item.setting == "ON":
+                        print "Turning on the switch"
+
+                    if item.setting == "OFF":
+                        print "Turning off the switch"
 
         if k & 0xFF == ord('q'):
             break
