@@ -66,9 +66,20 @@ def ReadIniFile():
                 globals.behaviourList.append(myBehaviour)
 
             if Config.get(section, "Type") == "Switch":
-                myBehaviour = globals.Switch(Config.get(section, "Type"), Config.get(section, "Label"), Config.get(section, "Key").strip("'"))
-                myBehaviour.switchSettings(Config.get(section, "SwitchLabel"), Config.get(section, "SwitchSetting"))
+                myBehaviour = globals.Behaviour(Config.get(section, "Type"), Config.get(section, "Label"), Config.get(section, "Key").strip("'"))
+                myBehaviour.setSwitchSettings(Config.get(section, "SwitchLabel"), Config.get(section, "SwitchSetting"))
                 globals.behaviourList.append(myBehaviour)
+
+                mySwitch  = globals.Switch(Config.get(section, "SwitchLabel"))
+                addSwitch = True
+                for switchitem in globals.switchList:
+                    if switchitem.switchLabel == mySwitch.switchLabel:
+                        print "Already added switch " + mySwitch.switchLabel
+                        addSwitch = False
+
+                if addSwitch==True:
+                    print "Creating switch " + mySwitch.switchLabel
+                    globals.switchList.append(mySwitch)
 
         print section
 
@@ -192,103 +203,35 @@ def main():
 
         for item in globals.behaviourList:
             if k & 0xFF == ord(item.key):
-                print item.label
-                if item.type == "Switch":
-                    print "Activated switch "
-                    print item.switchLabel
-                    if item.setting == "ON":
-                        print "Turning on the switch"
+                item.increaseCount()
+                print item.label + ", count " + str(item.count)
+                fd.write(str(date_object))
+                fd.write(', ' + item.label + '\n')
 
-                    if item.setting == "OFF":
-                        print "Turning off the switch"
+                if item.type == "Switch":
+                    for switchitem in globals.switchList:
+                        if item.switchName == switchitem.switchLabel:
+                            if item.setting == "ON":
+                                print "Turning on the switch " + switchitem.switchLabel
+                                switchitem.toggleSwitch("ON")
+                            elif item.setting == "OFF":
+                                print "Turning off the switch "  + switchitem.switchLabel
+                                switchitem.toggleSwitch("OFF")
+                            else:
+                                print "Mystery switch setting "  + switchitem.switchLabel
+
 
         if k & 0xFF == ord('q'):
             break
-
-        if k & 0xFF == ord('f'):
-            print "Female on" + str(count)
-            print "Female wander off" + str(count)
-            fd.write(str(date_object))
-            fd.write(', female on\n')
-            femaleActive = True
-            femaleWanderActive = False
-
-        if k & 0xFF == ord('d'):
-            print "Female off" + str(count)
-            fd.write(str(date_object))
-            fd.write(', female off\n')
-            femaleActive = False
-
-        if k & 0xFF == ord('r'):
-            print "Female wander on" + str(count)
-            print "Female off" + str(count)
-            fd.write(str(date_object))
-            fd.write(', female wander on\n')
-            femaleWanderActive = True
-            femaleActive = False
-
-        if k & 0xFF == ord('e'):
-            print "Female wander off" + str(count)
-            fd.write(str(date_object))
-            fd.write(', female wander off\n')
-            femaleWanderActive = False
-
-
-        if k & 0xFF == ord('m'):
-            print "Male on" + str(count)
-            print "Male wander off" + str(count)
-            fd.write(str(date_object))
-            fd.write(', male on\n')
-            maleActive = True
-            maleWanderActive = False
-
-        if k & 0xFF == ord('n'):
-            print "Male off" + str(count)
-            fd.write(str(date_object))
-            fd.write(', male off\n')
-            maleActive = False
-
-        if k & 0xFF == ord('k'):
-            print "Male wandering" + str(count)
-            print "Male off" + str(count)
-            fd.write(str(date_object))
-            fd.write(', male wander on\n')
-            maleWanderActive = True
-            maleActive = False
-
-        if k & 0xFF == ord('j'):
-            print "Male wander off" + str(count)
-            fd.write(str(date_object))
-            fd.write(', male wander off\n')
-            maleWanderActive = False
-
-        if k & 0xFF == ord(' '):
-            print "Mating" + str(matingCount)
-            fd.write(str(date_object))
-            fd.write(', mating\n')
-            matingCount = matingCount + 1
-
-        if k & 0xFF == ord('p'):
-            print "Aggression" + str(nipCount)
-            fd.write(str(date_object))
-            fd.write(', nip\n')
-            nipCount = nipCount + 1
 
         # to do: make this reflect the frames per second stuff
         seconds = seconds + 1
         secondCount = secondCount + 1
 
-        if femaleActive == True:
-            femaleCount = femaleCount + 1
-
-        if maleActive == True:
-            maleCount = maleCount + 1
-
-        if maleWanderActive == True:
-            maleWanderCount = maleWanderCount + 1
-
-        if femaleWanderActive == True:
-            femaleWanderCount = femaleWanderCount + 1
+        #check the switches
+        for switchitem in globals.switchList:
+            if switchitem.status=="ON":
+                switchitem.increaseFrameCount()
 
         date_object = date_object + datetime.timedelta(0,1)
         if seconds>=60:
@@ -312,39 +255,47 @@ def main():
     fd.write(', END\n')
     fd.close()
 
-    fd = open('time_care.csv','a')
+    if os.path.isfile('time_care.csv') == True:
+        fd = open('time_care.csv','a')
+    else:
+        fd = open('time_care.csv','a')
+        fd.write('date, seconds,')
+        for item in globals.behaviourList:
+            fd.write(str(item.label))
+            fd.write(',')
+        for switchitem in globals.switchList:
+            fd.write(str(switchitem.switchLabel))
+            fd.write(',')
+            fd.write('% total time')
+            fd.write(',')
+        fd.write('\n')
 
     fd.write(str(start_date_object))
     fd.write(',')
     fd.write(str(secondCount))
     fd.write(',')
-    fd.write(str(maleCount))
-    fd.write(',')
-    fd.write(str(100*maleCount/secondCount))
-    fd.write(',')
-    fd.write(str(femaleCount))
-    fd.write(',')
-    fd.write(str(100*femaleCount/secondCount))
-    fd.write(',')
-    fd.write(str(matingCount))
-    fd.write(',')
-    fd.write(str(nipCount))
-    fd.write(',')
-    fd.write(str(maleWanderCount))
-    fd.write(',')
-    fd.write(str(100*maleWanderCount/secondCount))
-    fd.write(',')
-    fd.write(str(femaleWanderCount))
-    fd.write(',')
-    fd.write(str(100*femaleWanderCount/secondCount))
+    for item in globals.behaviourList:
+        fd.write(str(item.count))
+        fd.write(',')
+
+    for switchitem in globals.switchList:
+        fd.write(str(switchitem.frameCount))
+        fd.write(',')
+        fd.write(str(100*switchitem.frameCount/secondCount))
+        fd.write(',')
+
     fd.write('\n')
 
     print date_object
     print "Total seconds: ", str(secondCount)
-    print "Total mating count: ", str(matingCount)
-    print "Total aggression count: ", str(nipCount)
-    print "Total male time on carcass: ", str(maleCount), " ", str(100*maleCount/secondCount), "%"
-    print "Total female time on carcass: ", str(femaleCount), " ", str(100*femaleCount/secondCount), "%"
+
+    print "Buttons pressed"
+    for item in globals.behaviourList:
+        print item.label + " count: " + str(item.count)
+    print "Switches"
+    for switchitem in globals.switchList:
+        print switchitem.switchLabel + ", frames activated: " + str(switchitem.frameCount) + " " + str(100*switchitem.frameCount/secondCount) + "%"
+
     print "Finished"
 
     fd.close()
