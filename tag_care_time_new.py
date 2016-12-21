@@ -154,8 +154,7 @@ def main():
     if globals.framesPerSecond<>fps:
         print "Warning!!!! ini file frames per second (fps) does not match fps in video"
         print "ini file fps: " + str(globals.framesPerSecond) + " Video fps: " + str(fps)
-        print "Use video setting of fps"
-        globals.framesPerSecond = int(fps)
+        print "Use file setting of fps, ignoring video information"
 
     timeVideo = 0
 
